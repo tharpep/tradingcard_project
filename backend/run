@@ -360,6 +360,28 @@ def update_card(args):
         print(f"Error updating card: {e}")
         sys.exit(1)
 
+def start_api_server():
+    """Start the FastAPI server"""
+    try:
+        print("Starting FastAPI server...")
+        print("Server will be available at: http://localhost:8000")
+        print("API documentation: http://localhost:8000/docs")
+        print("Press Ctrl+C to stop the server")
+        print("-" * 50)
+        
+        # Import uvicorn after ensuring venv
+        import uvicorn
+        from main import app
+        
+        # Start the server
+        uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+        
+    except KeyboardInterrupt:
+        print("\nServer stopped by user")
+    except Exception as e:
+        print(f"Error starting server: {e}")
+        sys.exit(1)
+
 def show_help():
     """Show help information"""
     print("Trading Card Collection Manager")
@@ -373,6 +395,7 @@ def show_help():
     print("  delete <id>              - Delete a card by ID")
     print("  update <id> [options]    - Update a card")
     print("  stats                    - Show collection statistics")
+    print("  start                    - Start the FastAPI server")
     print("  help                     - Show this help")
     print("\nExamples:")
     print("  python run add Charizard")
@@ -382,6 +405,7 @@ def show_help():
     print("  python run delete 1")
     print("  python run update 1 --rarity 'Rare Holo' --favorite")
     print("  python run stats")
+    print("  python run start")
     print("\nAdd card options:")
     print("  --set <name>             - Set name (default: Unknown)")
     print("  --number <number>         - Card number")
@@ -417,6 +441,8 @@ def main():
         show_stats(args)
     elif command == "update":
         update_card(args)
+    elif command == "start":
+        start_api_server()
     elif command == "help":
         show_help()
     else:

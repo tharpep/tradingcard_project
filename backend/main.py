@@ -9,7 +9,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Trading Card API", version="1.0.0")
+app = FastAPI(
+    title="Trading Card API", 
+    version="1.0.0",
+    description="API for managing trading card collections"
+)
 
 # Add CORS middleware for frontend communication
 app.add_middleware(
@@ -20,10 +24,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include API routes
+from api.routes.cards import router as cards_router
+app.include_router(cards_router)
+
 @app.get("/")
 def read_root():
     logger.info("Root endpoint accessed")
-    return {"message": "Trading Card API is running"}
+    return {
+        "message": "Trading Card API is running",
+        "docs": "/docs",
+        "health": "/health"
+    }
 
 @app.get("/health")
 def health_check():
