@@ -226,3 +226,50 @@ images/
 *.gif
 *.webp
 *.svg
+
+# Backend specific
+backend/cards.db
+backend/logs/
+backend/venv/
+backend/__pycache__/
+backend/*/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/.Python
+backend/pip-log.txt
+backend/pip-delete-this-directory.txt
+
+# Frontend specific
+frontend/.vite/
+frontend/dist/
+frontend/node_modules/
+frontend/.eslintcache
+
+# Test files
+tests/__pycache__/
+tests/.pytest_cache/
+tests/htmlcov/
+tests/.coverage
+tests/coverage.xml
+
+# IDE specific
+.vscode/settings.json
+.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# VSCode Shadcn MCP
+.vscode/shadcn/
+components.json
+
+# Cursor MCP
+.mcp.json
+.cursor/
+cursor-mcp/
+
+# OS specific
+.DS_Store
+Thumbs.db
+ehthumbs.db
