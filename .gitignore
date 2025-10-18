@@ -245,6 +245,9 @@ frontend/.vite/
 frontend/dist/
 frontend/node_modules/
 frontend/.eslintcache
+frontend/.turbo/
+frontend/tsconfig.tsbuildinfo
+frontend/node_modules/.tmp/
 
 # Test files
 tests/__pycache__/
@@ -262,12 +265,14 @@ tests/coverage.xml
 
 # VSCode Shadcn MCP
 .vscode/shadcn/
-components.json
 
 # Cursor MCP
 .mcp.json
 .cursor/
 cursor-mcp/
+
+# Shadcn UI (keep components.json for Cursor MCP)
+# components.json is needed for Shadcn to work
 
 # OS specific
 .DS_Store

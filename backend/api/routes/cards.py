@@ -34,6 +34,53 @@ async def get_cards():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving cards: {str(e)}")
 
+@router.get("/search", response_model=CardListResponse)
+async def search_cards(name: str = Query(..., description="Name to search for")):
+    """Search cards by name"""
+    try:
+        cards = card_service.search_cards(name)
+        card_responses = [CardResponse(
+            id=card['id'],
+            name=card['name'],
+            set_name=card['set_name'],
+            card_number=card.get('card_number'),
+            rarity=card.get('rarity'),
+            quantity=card['quantity'],
+            is_favorite=bool(card['is_favorite']),
+            date_added=card['date_added']
+        ) for card in cards]
+        return CardListResponse(cards=card_responses, total=len(card_responses))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error searching cards: {str(e)}")
+
+@router.get("/favorites", response_model=CardListResponse)
+async def get_favorites():
+    """Get all favorite cards"""
+    try:
+        cards = card_service.get_favorites()
+        card_responses = [CardResponse(
+            id=card['id'],
+            name=card['name'],
+            set_name=card['set_name'],
+            card_number=card.get('card_number'),
+            rarity=card.get('rarity'),
+            quantity=card['quantity'],
+            is_favorite=bool(card['is_favorite']),
+            date_added=card['date_added']
+        ) for card in cards]
+        return CardListResponse(cards=card_responses, total=len(card_responses))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving favorites: {str(e)}")
+
+@router.get("/stats", response_model=StatsResponse)
+async def get_stats():
+    """Get collection statistics"""
+    try:
+        stats = card_service.get_collection_stats()
+        return StatsResponse(**stats)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving stats: {str(e)}")
+
 @router.get("/{card_id}", response_model=CardResponse)
 async def get_card(card_id: int):
     """Get a specific card by ID"""
@@ -158,50 +205,3 @@ async def delete_card(card_id: int):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting card: {str(e)}")
-
-@router.get("/search", response_model=CardListResponse)
-async def search_cards(name: str = Query(..., description="Name to search for")):
-    """Search cards by name"""
-    try:
-        cards = card_service.search_cards(name)
-        card_responses = [CardResponse(
-            id=card['id'],
-            name=card['name'],
-            set_name=card['set_name'],
-            card_number=card.get('card_number'),
-            rarity=card.get('rarity'),
-            quantity=card['quantity'],
-            is_favorite=bool(card['is_favorite']),
-            date_added=card['date_added']
-        ) for card in cards]
-        return CardListResponse(cards=card_responses, total=len(card_responses))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error searching cards: {str(e)}")
-
-@router.get("/favorites", response_model=CardListResponse)
-async def get_favorites():
-    """Get all favorite cards"""
-    try:
-        cards = card_service.get_favorites()
-        card_responses = [CardResponse(
-            id=card['id'],
-            name=card['name'],
-            set_name=card['set_name'],
-            card_number=card.get('card_number'),
-            rarity=card.get('rarity'),
-            quantity=card['quantity'],
-            is_favorite=bool(card['is_favorite']),
-            date_added=card['date_added']
-        ) for card in cards]
-        return CardListResponse(cards=card_responses, total=len(card_responses))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving favorites: {str(e)}")
-
-@router.get("/stats", response_model=StatsResponse)
-async def get_stats():
-    """Get collection statistics"""
-    try:
-        stats = card_service.get_collection_stats()
-        return StatsResponse(**stats)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving stats: {str(e)}")
