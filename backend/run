@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Trading Card Collection CLI
 Main entry point for the trading card management system.
@@ -32,7 +32,10 @@ def ensure_venv():
     
     # Restart with venv Python
     try:
-        os.execv(str(python_exe), [str(python_exe)] + sys.argv)
+        # Use subprocess instead of os.execv to handle paths with spaces better
+        import subprocess
+        result = subprocess.run([str(python_exe)] + sys.argv)
+        sys.exit(result.returncode)
     except Exception:
         return False
     
@@ -371,6 +374,14 @@ def show_help():
     print("  update <id> [options]    - Update a card")
     print("  stats                    - Show collection statistics")
     print("  help                     - Show this help")
+    print("\nExamples:")
+    print("  python run add Charizard")
+    print("  python run add Pikachu --set 'Base Set' --rarity 'Common' --favorite")
+    print("  python run list")
+    print("  python run search Char")
+    print("  python run delete 1")
+    print("  python run update 1 --rarity 'Rare Holo' --favorite")
+    print("  python run stats")
     print("\nAdd card options:")
     print("  --set <name>             - Set name (default: Unknown)")
     print("  --number <number>         - Card number")

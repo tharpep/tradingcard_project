@@ -11,6 +11,7 @@ class CardCreate(BaseModel):
     rarity: Optional[str] = Field(None, max_length=50, description="Card rarity")
     quantity: int = Field(default=1, ge=1, description="Quantity owned")
     is_favorite: bool = Field(default=False, description="Is this a favorite card")
+    date_added: str = Field(default_factory=lambda: datetime.now().isoformat(), description="Date added")
 
 class CardUpdate(BaseModel):
     """Model for updating an existing card"""

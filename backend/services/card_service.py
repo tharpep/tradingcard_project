@@ -33,6 +33,7 @@ class CardService(BaseService):
         try:
             card_create = CardCreate(**card_data)
             validated_data = card_create.model_dump()
+            self.logger.info(f"Validated card data: {validated_data}")
         except Exception as e:
             self.logger.error(f"Validation error: {e}")
             raise ValueError(f"Invalid card data: {e}")
