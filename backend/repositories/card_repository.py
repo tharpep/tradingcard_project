@@ -32,15 +32,17 @@ class CardRepository(BaseRepository):
         conn.commit()
         
         card_id = cursor.lastrowid
+        if card_id is None:
+            raise RuntimeError("Failed to create card - no ID returned")
         logger.info(f"Card created with ID: {card_id}")
         return card_id
     
-    def find_by_id(self, card_id: int) -> Optional[Dict[str, Any]]:
+    def find_by_id(self, record_id: int) -> Optional[Dict[str, Any]]:
         """Find a card by ID"""
         conn = db_connection.get_connection()
         cursor = conn.cursor()
         
-        cursor.execute(f"SELECT * FROM {self.table_name} WHERE id = ?", (card_id,))
+        cursor.execute(f"SELECT * FROM {self.table_name} WHERE id = ?", (record_id,))
         row = cursor.fetchone()
         
         if row:
@@ -82,7 +84,7 @@ class CardRepository(BaseRepository):
         
         return [dict(row) for row in rows]
     
-    def update(self, card_id: int, data: Dict[str, Any]) -> bool:
+    def update(self, record_id: int, data: Dict[str, Any]) -> bool:
         """Update a card by ID"""
         conn = db_connection.get_connection()
         cursor = conn.cursor()
@@ -99,22 +101,22 @@ class CardRepository(BaseRepository):
             logger.warning("No fields to update")
             return False
         
-        values.append(card_id)
+        values.append(record_id)
         sql = f"UPDATE {self.table_name} SET {', '.join(set_clauses)} WHERE id = ?"
         
-        logger.info(f"Updating card ID {card_id}: {list(data.keys())}")
+        logger.info(f"Updating card ID {record_id}: {list(data.keys())}")
         cursor.execute(sql, values)
         conn.commit()
         
         return cursor.rowcount > 0
     
-    def delete(self, card_id: int) -> bool:
+    def delete(self, record_id: int) -> bool:
         """Delete a card by ID"""
         conn = db_connection.get_connection()
         cursor = conn.cursor()
         
-        logger.info(f"Deleting card ID: {card_id}")
-        cursor.execute(f"DELETE FROM {self.table_name} WHERE id = ?", (card_id,))
+        logger.info(f"Deleting card ID: {record_id}")
+        cursor.execute(f"DELETE FROM {self.table_name} WHERE id = ?", (record_id,))
         conn.commit()
         
         return cursor.rowcount > 0
