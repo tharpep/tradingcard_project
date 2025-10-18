@@ -7,6 +7,12 @@ function App() {
       <p className="text-center text-gray-600">
         Your Pokemon card collection manager
       </p>
+      <div className="mt-8 text-center">
+        <p className="text-lg">Ready to use Shadcn MCP!</p>
+        <p className="text-sm text-gray-500 mt-2">
+          Use the Shadcn MCP to add components and build your interface
+        </p>
+      </div>
     </div>
   )
 }
