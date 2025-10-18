@@ -371,10 +371,9 @@ def start_api_server():
         
         # Import uvicorn after ensuring venv
         import uvicorn
-        from main import app
         
-        # Start the server
-        uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+        # Start the server with import string for reload to work
+        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
         
     except KeyboardInterrupt:
         print("\nServer stopped by user")
