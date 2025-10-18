@@ -95,7 +95,7 @@ def print_header():
 def add_card(args):
     """Add a new card to your collection"""
     if len(args) < 1:
-        print("Usage: python run add <name> [--set <set>] [--number <number>] [--rarity <rarity>] [--quantity <qty>] [--favorite]")
+        print("Usage: python run add <name> [--set <set>] [--number <number>] [--rarity <rarity>] [--quantity <qty>] [--favorite] [--no-validate]")
         return
     
     name = args[0]
@@ -104,6 +104,7 @@ def add_card(args):
     rarity = None
     quantity = 1
     favorite = False
+    validate_pokemon = True
     
     # Parse options
     i = 1
@@ -123,17 +124,25 @@ def add_card(args):
         elif args[i] == "--favorite":
             favorite = True
             i += 1
+        elif args[i] == "--no-validate":
+            validate_pokemon = False
+            i += 1
         else:
             i += 1
     
     try:
+        if validate_pokemon:
+            print(f"Adding Pokemon card: {name}")
+            print("Note: Pokemon validation is currently disabled due to API reliability issues")
+        
         card_id = card_service.add_card(
             name=name,
             set_name=set_name,
             card_number=card_number,
             rarity=rarity,
             quantity=quantity,
-            is_favorite=favorite
+            is_favorite=favorite,
+            validate_pokemon=validate_pokemon
         )
         
         print(f"Card added successfully with ID: {card_id}")
@@ -421,6 +430,66 @@ def run_tests(args):
         print(f"Error running tests: {e}")
         sys.exit(1)
 
+def check_api_health(args):
+    """Check Pokemon TCG API health"""
+    try:
+        print("Checking Pokemon TCG API health...")
+        print("=" * 50)
+        
+        from services.pokemon_api_service import pokemon_api_service
+        
+        is_available, status_message = pokemon_api_service.health_check()
+        
+        if is_available:
+            print(f"SUCCESS: Pokemon TCG API: {status_message}")
+        else:
+            print(f"FAILED: Pokemon TCG API: {status_message}")
+            
+    except Exception as e:
+        print(f"ERROR: Error checking API health: {e}")
+        sys.exit(1)
+
+def clear_all_cards(args):
+    """Clear all cards from the database"""
+    try:
+        print("WARNING: This will delete ALL cards from the database!")
+        print("This action cannot be undone.")
+        
+        # Ask for confirmation
+        confirm = input("Type 'yes' to confirm deletion: ").strip().lower()
+        if confirm != 'yes':
+            print("Operation cancelled.")
+            return
+        
+        # Import services after ensuring venv
+        from services.card_service import CardService
+        
+        card_service = CardService()
+        
+        # Get current count
+        stats = card_service.get_collection_stats()
+        total_cards = stats.get('total_cards', 0)
+        
+        if total_cards == 0:
+            print("No cards to delete.")
+            return
+        
+        print(f"Deleting {total_cards} cards...")
+        
+        # Get all cards and delete them
+        all_cards = card_service.get_all_cards()
+        deleted_count = 0
+        
+        for card in all_cards:
+            if card_service.delete_card(card['id']):
+                deleted_count += 1
+        
+        print(f"Successfully deleted {deleted_count} cards.")
+        
+    except Exception as e:
+        print(f"ERROR: Failed to clear cards: {e}")
+        sys.exit(1)
+
 def show_help():
     """Show help information"""
     print("Trading Card Collection Manager")
@@ -436,6 +505,8 @@ def show_help():
     print("  stats                    - Show collection statistics")
     print("  start                    - Start the FastAPI server")
     print("  test [options]           - Run test suite")
+    print("  api-health               - Check Pokemon TCG API health")
+    print("  clear                    - Delete all cards from database")
     print("  help                     - Show this help")
     print("\nExamples:")
     print("  python run add Charizard")
@@ -487,6 +558,10 @@ def main():
         start_api_server()
     elif command == "test":
         run_tests(args)
+    elif command == "api-health":
+        check_api_health(args)
+    elif command == "clear":
+        clear_all_cards(args)
     elif command == "help":
         show_help()
     else:

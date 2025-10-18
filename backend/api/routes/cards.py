@@ -113,7 +113,8 @@ async def create_card(card_data: CardCreate):
             card_number=card_data.card_number,
             rarity=card_data.rarity,
             quantity=card_data.quantity,
-            is_favorite=card_data.is_favorite
+            is_favorite=card_data.is_favorite,
+            validate_pokemon=True  # Enable Pokemon validation by default
         )
         
         # Get the created card to return

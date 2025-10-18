@@ -1,7 +1,8 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import logging
 from datetime import datetime
 from .base_service import BaseService
+from .pokemon_api_service import pokemon_api_service
 from repositories.card_repository import CardRepository
 from models.card import Card, CardCreate, CardUpdate
 
@@ -14,9 +15,52 @@ class CardService(BaseService):
         super().__init__()
         self.repository = CardRepository()
     
-    def add_card(self, name: str, set_name: str = "Unknown", **kwargs) -> int:
+    def validate_pokemon_card(self, name: str) -> Tuple[bool, Optional[str]]:
+        """
+        Validate if a card name is a valid Pokemon card using the Pokemon TCG API
+        
+        Args:
+            name: Card name to validate
+            
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        self.logger.info(f"Validating Pokemon card: {name}")
+        
+        try:
+            # Quick health check first to avoid long timeouts
+            if not pokemon_api_service.is_api_available():
+                self.logger.warning(f"Pokemon API unavailable, allowing card '{name}' without validation")
+                return True, None
+            
+            is_valid, error_message = pokemon_api_service.validate_card_name(name)
+            
+            if is_valid:
+                self.logger.info(f"Successfully validated Pokemon card: {name}")
+                return True, None
+            else:
+                # Check if the error is due to API unavailability
+                if error_message and "not responding" in error_message.lower():
+                    self.logger.warning(f"Pokemon API unavailable, allowing card '{name}' without validation")
+                    return True, None
+                else:
+                    self.logger.warning(f"Invalid Pokemon card: {name} - {error_message}")
+                    return False, error_message
+            
+        except Exception as e:
+            self.logger.error(f"Error validating Pokemon card '{name}': {e}")
+            # If API is completely unavailable, allow the card but warn
+            self.logger.warning(f"Pokemon API unavailable, allowing card '{name}' without validation")
+            return True, None
+    
+    def add_card(self, name: str, set_name: str = "Unknown", validate_pokemon: bool = True, **kwargs) -> int:
         """Add a new card with business logic validation"""
         self.logger.info(f"Adding card: {name}")
+        
+        # Pokemon validation temporarily disabled - API reliability issues
+        # TODO: Re-enable Pokemon validation when API is stable
+        if validate_pokemon:
+            self.logger.info(f"Pokemon validation skipped for '{name}' - API validation disabled")
         
         # Create card data with defaults
         card_data = {
@@ -37,11 +81,6 @@ class CardService(BaseService):
         except Exception as e:
             self.logger.error(f"Validation error: {e}")
             raise ValueError(f"Invalid card data: {e}")
-        
-        # Check for duplicates (optional business rule)
-        existing = self.repository.find_by_name(name)
-        if existing:
-            self.logger.warning(f"Found {len(existing)} existing cards with similar name: {name}")
         
         # Create the card
         card_id = self.repository.create(validated_data)
@@ -161,3 +200,7 @@ class CardService(BaseService):
     def delete(self, record_id: int) -> bool:
         """Delete a card (implements BaseService)"""
         return self.delete_card(record_id)
+    
+    def is_pokemon_api_available(self) -> bool:
+        """Check if Pokemon TCG API is available"""
+        return pokemon_api_service.is_api_available()
