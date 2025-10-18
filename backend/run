@@ -1,2 +1,416 @@
 #!/usr/bin/env python
-# Main CLI entry point (no .py extension)
+"""
+Trading Card Collection CLI
+Main entry point for the trading card management system.
+Automatically uses virtual environment if available.
+"""
+
+import sys
+import os
+import subprocess
+from pathlib import Path
+
+def ensure_venv():
+    """Ensure we're using the virtual environment"""
+    # Check if we're already in a venv
+    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+        return True
+    
+    # Check if venv exists
+    venv_path = Path(__file__).parent / "venv"
+    if not venv_path.exists():
+        return False
+    
+    # Determine the correct Python executable
+    if os.name == 'nt':  # Windows
+        python_exe = venv_path / "Scripts" / "python.exe"
+    else:  # Unix/Linux/Mac
+        python_exe = venv_path / "bin" / "python"
+    
+    if not python_exe.exists():
+        return False
+    
+    # Restart with venv Python
+    try:
+        os.execv(str(python_exe), [str(python_exe)] + sys.argv)
+    except Exception:
+        return False
+    
+    return True
+
+# Handle setup command before any imports
+if len(sys.argv) > 1 and sys.argv[1] == 'setup':
+    print("Setting up virtual environment and dependencies...")
+    
+    try:
+        # Run the setup script
+        setup_script = Path(__file__).parent / "setup.py"
+        result = subprocess.run([sys.executable, str(setup_script)], 
+                              capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            print("Setup completed successfully!")
+            print("\nYou can now use all CLI commands:")
+            print("   python run add Charizard")
+            print("   python run list")
+            print("   python run stats")
+        else:
+            print(f"Setup failed with return code: {result.returncode}")
+            if result.stderr:
+                print(f"Error output: {result.stderr}")
+            if result.stdout:
+                print(f"Standard output: {result.stdout}")
+            sys.exit(1)
+            
+    except Exception as e:
+        print(f"Setup error: {e}")
+        sys.exit(1)
+    
+    sys.exit(0)
+
+# Try to use venv, fall back to system Python
+if not ensure_venv():
+    print("Virtual environment not found. Using system Python.")
+    print("Run 'python run setup' to create the virtual environment.")
+
+# Now import everything after venv is handled
+from pathlib import Path
+from utils.logger import setup_logging
+from services.card_service import CardService
+
+# Set up logging
+logger = setup_logging()
+
+# Initialize card service
+card_service = CardService()
+
+def print_header():
+    """Print the CLI header"""
+    print("Trading Card Collection Manager")
+    print("=" * 40)
+
+def add_card(args):
+    """Add a new card to your collection"""
+    if len(args) < 1:
+        print("Usage: python run add <name> [--set <set>] [--number <number>] [--rarity <rarity>] [--quantity <qty>] [--favorite]")
+        return
+    
+    name = args[0]
+    set_name = "Unknown"
+    card_number = None
+    rarity = None
+    quantity = 1
+    favorite = False
+    
+    # Parse options
+    i = 1
+    while i < len(args):
+        if args[i] == "--set" and i + 1 < len(args):
+            set_name = args[i + 1]
+            i += 2
+        elif args[i] == "--number" and i + 1 < len(args):
+            card_number = args[i + 1]
+            i += 2
+        elif args[i] == "--rarity" and i + 1 < len(args):
+            rarity = args[i + 1]
+            i += 2
+        elif args[i] == "--quantity" and i + 1 < len(args):
+            quantity = int(args[i + 1])
+            i += 2
+        elif args[i] == "--favorite":
+            favorite = True
+            i += 1
+        else:
+            i += 1
+    
+    try:
+        card_id = card_service.add_card(
+            name=name,
+            set_name=set_name,
+            card_number=card_number,
+            rarity=rarity,
+            quantity=quantity,
+            is_favorite=favorite
+        )
+        
+        print(f"Card added successfully with ID: {card_id}")
+        print(f"   Name: {name}")
+        print(f"   Set: {set_name}")
+        if card_number:
+            print(f"   Number: {card_number}")
+        if rarity:
+            print(f"   Rarity: {rarity}")
+        print(f"   Quantity: {quantity}")
+        if favorite:
+            print("   Marked as favorite")
+            
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        sys.exit(1)
+
+def list_cards(args):
+    """List all cards in your collection"""
+    favorites_only = "--favorites" in args or "-f" in args
+    
+    try:
+        if favorites_only:
+            cards = card_service.get_favorites()
+            if not cards:
+                print("No favorite cards found")
+                return
+        else:
+            cards = card_service.get_all_cards()
+            if not cards:
+                print("Your collection is empty")
+                return
+        
+        # Prepare table data
+        headers = ["ID", "Name", "Set", "Number", "Rarity", "Qty", "Favorite", "Added"]
+        table_data = []
+        
+        for card in cards:
+            table_data.append([
+                card['id'],
+                card['name'],
+                card['set_name'],
+                card['card_number'] or '-',
+                card['rarity'] or '-',
+                card['quantity'],
+                '*' if card['is_favorite'] else '',
+                card['date_added'][:10]  # Just the date part
+            ])
+        
+        # Simple table output
+        print(f"{'ID':<4} {'Name':<20} {'Set':<15} {'Number':<8} {'Rarity':<12} {'Qty':<3} {'Fav':<3} {'Added':<10}")
+        print("-" * 80)
+        for row in table_data:
+            print(f"{row[0]:<4} {row[1]:<20} {row[2]:<15} {row[3]:<8} {row[4]:<12} {row[5]:<3} {row[6]:<3} {row[7]:<10}")
+        
+        if favorites_only:
+            print(f"\nShowing {len(cards)} favorite cards")
+        else:
+            print(f"\nTotal cards: {len(cards)}")
+            
+    except Exception as e:
+        print(f"Error listing cards: {e}")
+        sys.exit(1)
+
+def search_cards(args):
+    """Search for cards by name"""
+    if len(args) < 1:
+        print("Usage: python run search <name>")
+        return
+    
+    name = args[0]
+    
+    try:
+        cards = card_service.search_cards(name)
+        
+        if not cards:
+            print(f"No cards found matching '{name}'")
+            return
+        
+        # Prepare table data
+        headers = ["ID", "Name", "Set", "Number", "Rarity", "Qty", "Favorite"]
+        table_data = []
+        
+        for card in cards:
+            table_data.append([
+                card['id'],
+                card['name'],
+                card['set_name'],
+                card['card_number'] or '-',
+                card['rarity'] or '-',
+                card['quantity'],
+                '*' if card['is_favorite'] else ''
+            ])
+        
+        # Simple table output
+        print(f"{'ID':<4} {'Name':<20} {'Set':<15} {'Number':<8} {'Rarity':<12} {'Qty':<3} {'Fav':<3} {'Added':<10}")
+        print("-" * 80)
+        for row in table_data:
+            print(f"{row[0]:<4} {row[1]:<20} {row[2]:<15} {row[3]:<8} {row[4]:<12} {row[5]:<3} {row[6]:<3} {row[7]:<10}")
+        print(f"\nFound {len(cards)} cards matching '{name}'")
+        
+    except Exception as e:
+        print(f"Error searching cards: {e}")
+        sys.exit(1)
+
+def delete_card(args):
+    """Delete a card from your collection"""
+    if len(args) < 1:
+        print("Usage: python run delete <id>")
+        return
+    
+    try:
+        card_id = int(args[0])
+    except ValueError:
+        print("Error: Card ID must be a number")
+        return
+    
+    try:
+        # First check if card exists
+        card = card_service.get_card(card_id)
+        if not card:
+            print(f"Card with ID {card_id} not found")
+            sys.exit(1)
+        
+        # Confirm deletion
+        print(f"Are you sure you want to delete '{card['name']}'?")
+        response = input("This action cannot be undone (y/N): ").strip().lower()
+        if response not in ['y', 'yes']:
+            print("Deletion cancelled")
+            return
+        
+        success = card_service.delete_card(card_id)
+        if success:
+            print(f"Card '{card['name']}' deleted successfully")
+        else:
+            print(f"Failed to delete card {card_id}")
+            sys.exit(1)
+            
+    except Exception as e:
+        print(f"Error deleting card: {e}")
+        sys.exit(1)
+
+def show_stats(args):
+    """Show collection statistics"""
+    try:
+        stats = card_service.get_collection_stats()
+        
+        print("Collection Statistics")
+        print("=" * 30)
+        print(f"Total Cards: {stats['total_cards']}")
+        print(f"Total Quantity: {stats['total_quantity']}")
+        print(f"Favorite Cards: {stats['favorites']}")
+        print(f"Most Common Set: {stats['most_common_set']}")
+        
+    except Exception as e:
+        print(f"Error getting stats: {e}")
+        sys.exit(1)
+
+def update_card(args):
+    """Update a card in your collection"""
+    if len(args) < 1:
+        print("Usage: python run update <id> [--name <name>] [--set <set>] [--number <number>] [--rarity <rarity>] [--quantity <qty>] [--favorite]")
+        return
+    
+    try:
+        card_id = int(args[0])
+    except ValueError:
+        print("Error: Card ID must be a number")
+        return
+    
+    # Parse update options
+    update_data = {}
+    i = 1
+    while i < len(args):
+        if args[i] == "--name" and i + 1 < len(args):
+            update_data['name'] = args[i + 1]
+            i += 2
+        elif args[i] == "--set" and i + 1 < len(args):
+            update_data['set_name'] = args[i + 1]
+            i += 2
+        elif args[i] == "--number" and i + 1 < len(args):
+            update_data['card_number'] = args[i + 1]
+            i += 2
+        elif args[i] == "--rarity" and i + 1 < len(args):
+            update_data['rarity'] = args[i + 1]
+            i += 2
+        elif args[i] == "--quantity" and i + 1 < len(args):
+            update_data['quantity'] = int(args[i + 1])
+            i += 2
+        elif args[i] == "--favorite":
+            # Toggle favorite status
+            card = card_service.get_card(card_id)
+            if card:
+                update_data['is_favorite'] = not card['is_favorite']
+            i += 1
+        else:
+            i += 1
+    
+    if not update_data:
+        print("No fields to update. Use --help to see available options.")
+        return
+    
+    try:
+        # Check if card exists
+        card = card_service.get_card(card_id)
+        if not card:
+            print(f"Card with ID {card_id} not found")
+            sys.exit(1)
+        
+        success = card_service.update_card(card_id, **update_data)
+        if success:
+            print(f"Card '{card['name']}' updated successfully")
+        else:
+            print(f"Failed to update card {card_id}")
+            sys.exit(1)
+            
+    except ValueError as e:
+        print(f"Validation error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error updating card: {e}")
+        sys.exit(1)
+
+def show_help():
+    """Show help information"""
+    print("Trading Card Collection Manager")
+    print("=" * 40)
+    print("\nCommands:")
+    print("  setup                    - Set up virtual environment and dependencies")
+    print("  add <name>               - Add a new card")
+    print("  list                     - List all cards")
+    print("  list --favorites         - List favorite cards only")
+    print("  search <name>            - Search cards by name")
+    print("  delete <id>              - Delete a card by ID")
+    print("  update <id> [options]    - Update a card")
+    print("  stats                    - Show collection statistics")
+    print("  help                     - Show this help")
+    print("\nAdd card options:")
+    print("  --set <name>             - Set name (default: Unknown)")
+    print("  --number <number>         - Card number")
+    print("  --rarity <rarity>         - Card rarity")
+    print("  --quantity <number>       - Quantity (default: 1)")
+    print("  --favorite               - Mark as favorite")
+    print("\nUpdate card options:")
+    print("  --name <name>             - Update card name")
+    print("  --set <name>              - Update set name")
+    print("  --number <number>         - Update card number")
+    print("  --rarity <rarity>         - Update rarity")
+    print("  --quantity <number>       - Update quantity")
+    print("  --favorite                - Toggle favorite status")
+
+def main():
+    """Main CLI function"""
+    if len(sys.argv) < 2:
+        show_help()
+        return
+    
+    command = sys.argv[1]
+    args = sys.argv[2:]
+    
+    if command == "add":
+        add_card(args)
+    elif command == "list":
+        list_cards(args)
+    elif command == "search":
+        search_cards(args)
+    elif command == "delete":
+        delete_card(args)
+    elif command == "stats":
+        show_stats(args)
+    elif command == "update":
+        update_card(args)
+    elif command == "help":
+        show_help()
+    else:
+        print(f"Unknown command: {command}")
+        print("Use 'python run help' to see available commands")
+
+if __name__ == '__main__':
+    main()
