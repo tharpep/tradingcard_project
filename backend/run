@@ -381,6 +381,46 @@ def start_api_server():
         print(f"Error starting server: {e}")
         sys.exit(1)
 
+def run_tests(args):
+    """Run the test suite"""
+    try:
+        print("Running test suite...")
+        print("=" * 50)
+        
+        # Import pytest after ensuring venv
+        import pytest
+        import subprocess
+        import os
+        
+        # Get the tests directory (parent directory)
+        tests_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tests')
+        
+        # Build pytest command
+        cmd = ['python', '-m', 'pytest', tests_dir, '-v']
+        
+        # Add any additional arguments
+        if len(args) > 0:
+            cmd.extend(args)
+        
+        print(f"Running: {' '.join(cmd)}")
+        print("-" * 50)
+        
+        # Run tests
+        result = subprocess.run(cmd, cwd=os.path.dirname(__file__))
+        
+        if result.returncode == 0:
+            print("\n✅ All tests passed!")
+        else:
+            print(f"\n❌ Tests failed with exit code: {result.returncode}")
+            sys.exit(1)
+            
+    except ImportError:
+        print("Error: pytest not found. Run 'python run setup' first to install dependencies.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error running tests: {e}")
+        sys.exit(1)
+
 def show_help():
     """Show help information"""
     print("Trading Card Collection Manager")
@@ -395,6 +435,7 @@ def show_help():
     print("  update <id> [options]    - Update a card")
     print("  stats                    - Show collection statistics")
     print("  start                    - Start the FastAPI server")
+    print("  test [options]           - Run test suite")
     print("  help                     - Show this help")
     print("\nExamples:")
     print("  python run add Charizard")
@@ -405,6 +446,8 @@ def show_help():
     print("  python run update 1 --rarity 'Rare Holo' --favorite")
     print("  python run stats")
     print("  python run start")
+    print("  python run test")
+    print("  python run test test_models.py")
     print("\nAdd card options:")
     print("  --set <name>             - Set name (default: Unknown)")
     print("  --number <number>         - Card number")
@@ -442,6 +485,8 @@ def main():
         update_card(args)
     elif command == "start":
         start_api_server()
+    elif command == "test":
+        run_tests(args)
     elif command == "help":
         show_help()
     else:
