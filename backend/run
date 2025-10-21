@@ -9,6 +9,7 @@ import sys
 import os
 import subprocess
 from pathlib import Path
+from config import Config
 
 def ensure_venv():
     """Ensure we're using the virtual environment"""
@@ -382,7 +383,7 @@ def start_api_server():
         import uvicorn
         
         # Start the server with import string for reload to work
-        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+        uvicorn.run("main:app", host=Config.API_HOST, port=Config.API_PORT, reload=Config.API_RELOAD)
         
     except KeyboardInterrupt:
         print("\nServer stopped by user")
@@ -401,15 +402,31 @@ def run_tests(args):
         import subprocess
         import os
         
-        # Get the tests directory (parent directory)
-        tests_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tests')
+        # Get the tests directory (backend/tests)
+        tests_dir = os.path.join(os.path.dirname(__file__), 'tests')
         
         # Build pytest command
-        cmd = ['python', '-m', 'pytest', tests_dir, '-v']
+        cmd = ['python', '-m', 'pytest']
         
-        # Add any additional arguments
+        # Handle specific test file or verbose mode
         if len(args) > 0:
-            cmd.extend(args)
+            if args[0] == 'v' or args[0] == '-v' or args[0] == '--verbose':
+                # Verbose mode - run all tests with verbose output
+                cmd.extend([tests_dir, '-v'])
+            else:
+                # Specific test file
+                test_file = args[0]
+                if not test_file.endswith('.py'):
+                    test_file += '.py'
+                test_path = os.path.join(tests_dir, test_file)
+                if os.path.exists(test_path):
+                    cmd.extend([test_path, '-v'])
+                else:
+                    print(f"Test file not found: {test_path}")
+                    sys.exit(1)
+        else:
+            # Default: run all tests without verbose output
+            cmd.append(tests_dir)
         
         print(f"Running: {' '.join(cmd)}")
         print("-" * 50)
@@ -494,6 +511,14 @@ def show_help():
     """Show help information"""
     print("Trading Card Collection Manager")
     print("=" * 40)
+    
+    # Show database type
+    db_type = Config.get_database_type()
+    if db_type == "supabase":
+        print(f"Database: Supabase (Cloud)")
+    else:
+        print(f"Database: SQLite (Local)")
+    
     print("\nCommands:")
     print("  setup                    - Set up virtual environment and dependencies")
     print("  add <name>               - Add a new card")
@@ -505,6 +530,8 @@ def show_help():
     print("  stats                    - Show collection statistics")
     print("  start                    - Start the FastAPI server")
     print("  test [options]           - Run test suite")
+    print("  test v                   - Run tests with verbose output")
+    print("  test <filename>          - Run specific test file")
     print("  api-health               - Check Pokemon TCG API health")
     print("  clear                    - Delete all cards from database")
     print("  help                     - Show this help")
@@ -518,6 +545,7 @@ def show_help():
     print("  python run stats")
     print("  python run start")
     print("  python run test")
+    print("  python run test v")
     print("  python run test test_models.py")
     print("\nAdd card options:")
     print("  --set <name>             - Set name (default: Unknown)")

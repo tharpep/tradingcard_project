@@ -1,7 +1,14 @@
 # Tests for Pydantic models
 import pytest
+import sys
+from pathlib import Path
 from datetime import datetime
-from backend.models.card import CardCreate, CardUpdate, Card
+
+# Add backend to path so we can import from it
+backend_path = Path(__file__).parent.parent
+sys.path.insert(0, str(backend_path))
+
+from models.card import CardCreate, CardUpdate, Card
 
 def test_card_create_defaults():
     """Test CardCreate with minimal data"""

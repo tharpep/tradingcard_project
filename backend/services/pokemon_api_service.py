@@ -9,6 +9,7 @@ import requests
 import logging
 from typing import Optional, Dict, List, Tuple
 from requests.exceptions import Timeout, ConnectionError, RequestException
+from config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +17,10 @@ class PokemonAPIService:
     """Service for interacting with the Pokemon TCG API"""
     
     def __init__(self):
-        self.base_url = "https://api.pokemontcg.io/v2"
-        self.timeout = 10  # seconds - reasonable timeout for specific search
+        self.base_url = Config.POKEMON_TCG_API_BASE_URL
+        self.timeout = Config.POKEMON_TCG_API_TIMEOUT
         self.max_retries = 2  # allow retries
+        self.enabled = Config.POKEMON_TCG_API_ENABLED
         
     def _make_request(self, endpoint: str, params: Optional[Dict] = None) -> Optional[Dict]:
         """

@@ -1,9 +1,9 @@
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, Union
 import logging
 from datetime import datetime
 from .base_service import BaseService
 from .pokemon_api_service import pokemon_api_service
-from repositories.card_repository import CardRepository
+from repositories.repository_factory import get_card_repository
 from models.card import Card, CardCreate, CardUpdate
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ class CardService(BaseService):
     
     def __init__(self):
         super().__init__()
-        self.repository = CardRepository()
+        self.repository = get_card_repository()
     
     def validate_pokemon_card(self, name: str) -> Tuple[bool, Optional[str]]:
         """
@@ -53,7 +53,7 @@ class CardService(BaseService):
             self.logger.warning(f"Pokemon API unavailable, allowing card '{name}' without validation")
             return True, None
     
-    def add_card(self, name: str, set_name: str = "Unknown", validate_pokemon: bool = True, **kwargs) -> int:
+    def add_card(self, name: str, set_name: str = "Unknown", validate_pokemon: bool = True, **kwargs) -> Union[int, str]:
         """Add a new card with business logic validation"""
         self.logger.info(f"Adding card: {name}")
         
@@ -87,7 +87,7 @@ class CardService(BaseService):
         self.logger.info(f"Card added successfully with ID: {card_id}")
         return card_id
     
-    def get_card(self, card_id: int) -> Optional[Dict[str, Any]]:
+    def get_card(self, card_id: Union[int, str]) -> Optional[Dict[str, Any]]:
         """Get a card by ID"""
         self.logger.info(f"Getting card ID: {card_id}")
         return self.repository.find_by_id(card_id)
@@ -107,7 +107,7 @@ class CardService(BaseService):
         self.logger.info("Getting favorite cards")
         return self.repository.find_favorites()
     
-    def update_card(self, card_id: int, **kwargs) -> bool:
+    def update_card(self, card_id: Union[int, str], **kwargs) -> bool:
         """Update a card with validation"""
         self.logger.info(f"Updating card ID: {card_id}")
         
@@ -146,7 +146,7 @@ class CardService(BaseService):
         
         return success
     
-    def delete_card(self, card_id: int) -> bool:
+    def delete_card(self, card_id: Union[int, str]) -> bool:
         """Delete a card"""
         self.logger.info(f"Deleting card ID: {card_id}")
         
@@ -168,7 +168,7 @@ class CardService(BaseService):
         self.logger.info("Getting collection statistics")
         return self.repository.get_stats()
     
-    def toggle_favorite(self, card_id: int) -> bool:
+    def toggle_favorite(self, card_id: Union[int, str]) -> bool:
         """Toggle favorite status of a card"""
         self.logger.info(f"Toggling favorite status for card ID: {card_id}")
         
@@ -181,11 +181,11 @@ class CardService(BaseService):
         return self.update_card(card_id, is_favorite=new_favorite_status)
     
     # Implement abstract methods from BaseService
-    def create(self, data: Dict[str, Any]) -> int:
+    def create(self, data: Dict[str, Any]) -> Union[int, str]:
         """Create a new card (implements BaseService)"""
         return self.add_card(**data)
     
-    def get_by_id(self, record_id: int) -> Optional[Dict[str, Any]]:
+    def get_by_id(self, record_id: Union[int, str]) -> Optional[Dict[str, Any]]:
         """Get a card by ID (implements BaseService)"""
         return self.get_card(record_id)
     
@@ -193,14 +193,16 @@ class CardService(BaseService):
         """Get all cards (implements BaseService)"""
         return self.get_all_cards()
     
-    def update(self, record_id: int, data: Dict[str, Any]) -> bool:
+    def update(self, record_id: Union[int, str], data: Dict[str, Any]) -> bool:
         """Update a card (implements BaseService)"""
         return self.update_card(record_id, **data)
     
-    def delete(self, record_id: int) -> bool:
+    def delete(self, record_id: Union[int, str]) -> bool:
         """Delete a card (implements BaseService)"""
         return self.delete_card(record_id)
     
     def is_pokemon_api_available(self) -> bool:
         """Check if Pokemon TCG API is available"""
         return pokemon_api_service.is_api_available()
+    
+    # Type annotations updated to support both SQLite (int) and Supabase (str) IDs

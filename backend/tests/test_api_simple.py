@@ -1,7 +1,14 @@
 # Simple API tests that actually work
 import pytest
+import sys
+from pathlib import Path
 from fastapi.testclient import TestClient
-from backend.main import app
+
+# Add backend to path so we can import from it
+backend_path = Path(__file__).parent.parent
+sys.path.insert(0, str(backend_path))
+
+from main import app
 
 def test_root_endpoint():
     """Test root endpoint"""

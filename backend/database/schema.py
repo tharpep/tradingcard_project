@@ -1,4 +1,3 @@
-import sqlite3
 import logging
 from .connection import db_connection
 

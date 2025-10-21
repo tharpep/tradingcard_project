@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 import logging
 from .base_repository import BaseRepository
 from database.connection import db_connection
@@ -37,7 +37,7 @@ class CardRepository(BaseRepository):
         logger.info(f"Card created with ID: {card_id}")
         return card_id
     
-    def find_by_id(self, record_id: int) -> Optional[Dict[str, Any]]:
+    def find_by_id(self, record_id: Union[int, str]) -> Optional[Dict[str, Any]]:
         """Find a card by ID"""
         conn = db_connection.get_connection()
         cursor = conn.cursor()
@@ -84,7 +84,7 @@ class CardRepository(BaseRepository):
         
         return [dict(row) for row in rows]
     
-    def update(self, record_id: int, data: Dict[str, Any]) -> bool:
+    def update(self, record_id: Union[int, str], data: Dict[str, Any]) -> bool:
         """Update a card by ID"""
         conn = db_connection.get_connection()
         cursor = conn.cursor()
@@ -110,7 +110,7 @@ class CardRepository(BaseRepository):
         
         return cursor.rowcount > 0
     
-    def delete(self, record_id: int) -> bool:
+    def delete(self, record_id: Union[int, str]) -> bool:
         """Delete a card by ID"""
         conn = db_connection.get_connection()
         cursor = conn.cursor()

@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from typing import Optional
 import logging
+from config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class DatabaseConnection:
         """Get database connection, creating it if it doesn't exist"""
         if self._connection is None:
             # Get database path from config
-            db_path = Path(__file__).parent.parent / "cards.db"
+            db_path = Path(__file__).parent.parent / Config.DATABASE_PATH
             
             logger.info(f"Connecting to database: {db_path}")
             self._connection = sqlite3.connect(str(db_path))

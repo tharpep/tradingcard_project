@@ -1,10 +1,10 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Union
 from datetime import datetime
 
 class CardResponse(BaseModel):
     """Response model for card data"""
-    id: int
+    id: Union[int, str]
     name: str
     set_name: str
     card_number: Optional[str] = None
