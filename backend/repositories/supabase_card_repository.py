@@ -1,37 +1,46 @@
 from typing import List, Dict, Any, Optional, Union
 import logging
-import os
-from supabase import create_client, Client
+import requests
 from .base_repository import BaseRepository
+from config import Config
 
 logger = logging.getLogger(__name__)
 
 class SupabaseCardRepository(BaseRepository):
-    """Repository for card database operations using Supabase"""
+    """Repository for card database operations using Supabase REST API"""
     
     def __init__(self):
         super().__init__("cards")
-        # Initialize Supabase client
-        self.client = self._get_supabase_client()
-    
-    def _get_supabase_client(self) -> Client:
-        """Initialize and return Supabase client"""
-        url = os.getenv('SUPABASE_URL')
-        key = os.getenv('SUPABASE_KEY')
+        self.supabase_url = Config.SUPABASE_URL
+        self.supabase_key = Config.SUPABASE_KEY
         
-        if not url or not key:
+        if not self.supabase_url or not self.supabase_key:
             raise ValueError("SUPABASE_URL and SUPABASE_KEY environment variables must be set")
         
-        logger.info("Initializing Supabase client")
-        return create_client(url, key)
+        # Supabase REST API endpoint
+        self.api_url = f"{self.supabase_url}/rest/v1/{self.table_name}"
+        
+        # Headers for all requests
+        self.headers = {
+            "apikey": self.supabase_key,
+            "Authorization": f"Bearer {self.supabase_key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"  # Return the data after insert/update
+        }
+        
+        logger.info("Initialized Supabase REST API client")
+        logger.info(f"API URL: {self.api_url}")
+        logger.info(f"API Key: {'SET' if self.supabase_key else 'NOT SET'}")
     
     def create(self, data: Dict[str, Any]) -> str:
         """Create a new card and return its ID"""
-        logger.info(f"Creating card: {data.get('name', 'Unknown')}")
+        logger.info(f"Creating card via REST API: {data.get('name', 'Unknown')}")
         
         try:
-            # Use the helper function for duplicate handling
-            result = self.client.rpc('add_or_increment_card', {
+            # Use RPC function for duplicate handling
+            rpc_url = f"{self.supabase_url}/rest/v1/rpc/add_or_increment_card"
+            
+            payload = {
                 'p_name': data.get('name'),
                 'p_set_name': data.get('set_name', 'Unknown'),
                 'p_card_number': data.get('card_number'),
@@ -46,57 +55,48 @@ class SupabaseCardRepository(BaseRepository):
                 'p_last_updated_price': data.get('last_updated_price'),
                 'p_tags': data.get('tags', []),
                 'p_user_id': data.get('user_id')
-            }).execute()
+            }
             
-            card_id = result.data
-            logger.info(f"Card created with ID: {card_id}")
+            response = requests.post(rpc_url, headers=self.headers, json=payload)
+            response.raise_for_status()
+            
+            card_id = response.json()
+            logger.info(f"Card created/updated with ID: {card_id}")
             return card_id
             
-        except Exception as e:
-            logger.error(f"Failed to create card: {e}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to create card via REST API: {e}")
+            if hasattr(e.response, 'text'):
+                logger.error(f"Response: {e.response.text}")
             raise
     
     def find_by_id(self, record_id: Union[int, str]) -> Optional[Dict[str, Any]]:
         """Find a card by ID"""
         try:
-            result = self.client.table(self.table_name).select("*").eq("id", record_id).execute()
+            url = f"{self.api_url}?id=eq.{record_id}"
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
             
-            if result.data:
-                return result.data[0]
+            data = response.json()
+            if data:
+                return data[0]
             return None
             
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             logger.error(f"Failed to find card by ID {record_id}: {e}")
             return None
     
     def find_all(self) -> List[Dict[str, Any]]:
         """Find all cards"""
         try:
-            result = self.client.table(self.table_name).select("*").order("date_added", desc=True).execute()
-            return result.data
+            url = f"{self.api_url}?order=date_added.desc"
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
             
-        except Exception as e:
+            return response.json()
+            
+        except requests.exceptions.RequestException as e:
             logger.error(f"Failed to find all cards: {e}")
-            return []
-    
-    def find_by_name(self, name: str) -> List[Dict[str, Any]]:
-        """Search cards by name (partial match)"""
-        try:
-            result = self.client.table(self.table_name).select("*").ilike("name", f"%{name}%").order("name").execute()
-            return result.data
-            
-        except Exception as e:
-            logger.error(f"Failed to search cards by name '{name}': {e}")
-            return []
-    
-    def find_favorites(self) -> List[Dict[str, Any]]:
-        """Find all favorite cards"""
-        try:
-            result = self.client.table(self.table_name).select("*").eq("is_favorite", True).order("name").execute()
-            return result.data
-            
-        except Exception as e:
-            logger.error(f"Failed to find favorite cards: {e}")
             return []
     
     def update(self, record_id: Union[int, str], data: Dict[str, Any]) -> bool:
@@ -104,10 +104,14 @@ class SupabaseCardRepository(BaseRepository):
         logger.info(f"Updating card ID {record_id}: {list(data.keys())}")
         
         try:
-            result = self.client.table(self.table_name).update(data).eq("id", record_id).execute()
-            return len(result.data) > 0
+            url = f"{self.api_url}?id=eq.{record_id}"
+            response = requests.patch(url, headers=self.headers, json=data)
+            response.raise_for_status()
             
-        except Exception as e:
+            result = response.json()
+            return len(result) > 0
+            
+        except requests.exceptions.RequestException as e:
             logger.error(f"Failed to update card {record_id}: {e}")
             return False
     
@@ -116,40 +120,59 @@ class SupabaseCardRepository(BaseRepository):
         logger.info(f"Deleting card ID: {record_id}")
         
         try:
-            result = self.client.table(self.table_name).delete().eq("id", record_id).execute()
-            return len(result.data) > 0
+            url = f"{self.api_url}?id=eq.{record_id}"
+            response = requests.delete(url, headers=self.headers)
+            response.raise_for_status()
             
-        except Exception as e:
+            return True
+            
+        except requests.exceptions.RequestException as e:
             logger.error(f"Failed to delete card {record_id}: {e}")
             return False
+    
+    def find_by_name(self, name: str) -> List[Dict[str, Any]]:
+        """Search cards by name"""
+        try:
+            url = f"{self.api_url}?name=ilike.*{name}*"
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            
+            return response.json()
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to search cards by name '{name}': {e}")
+            return []
+    
+    def find_favorites(self) -> List[Dict[str, Any]]:
+        """Find all favorite cards"""
+        try:
+            url = f"{self.api_url}?is_favorite=eq.true"
+            response = requests.get(url, headers=self.headers)
+            response.raise_for_status()
+            
+            return response.json()
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to find favorite cards: {e}")
+            return []
     
     def get_stats(self) -> Dict[str, Any]:
         """Get collection statistics"""
         try:
-            # Get all cards for stats calculation
-            result = self.client.table(self.table_name).select("*").execute()
-            cards = result.data
+            # Get all cards to calculate stats
+            cards = self.find_all()
             
-            if not cards:
-                return {
-                    'total_cards': 0,
-                    'total_quantity': 0,
-                    'favorites': 0,
-                    'most_common_set': 'None'
-                }
-            
-            # Calculate stats
             total_cards = len(cards)
             total_quantity = sum(card.get('quantity', 0) for card in cards)
-            favorites = sum(1 for card in cards if card.get('is_favorite', False))
+            favorites = sum(1 for card in cards if card.get('is_favorite'))
             
-            # Most common set
-            set_counts = {}
+            # Find most common set
+            sets = {}
             for card in cards:
                 set_name = card.get('set_name', 'Unknown')
-                set_counts[set_name] = set_counts.get(set_name, 0) + 1
+                sets[set_name] = sets.get(set_name, 0) + 1
             
-            most_common_set = max(set_counts.items(), key=lambda x: x[1])[0] if set_counts else 'None'
+            most_common_set = max(sets.items(), key=lambda x: x[1])[0] if sets else 'None'
             
             return {
                 'total_cards': total_cards,
@@ -166,23 +189,3 @@ class SupabaseCardRepository(BaseRepository):
                 'favorites': 0,
                 'most_common_set': 'None'
             }
-    
-    def find_by_tags(self, tags: List[str]) -> List[Dict[str, Any]]:
-        """Find cards by tags (Supabase-specific feature)"""
-        try:
-            result = self.client.table(self.table_name).select("*").overlaps("tags", tags).execute()
-            return result.data
-            
-        except Exception as e:
-            logger.error(f"Failed to find cards by tags {tags}: {e}")
-            return []
-    
-    def find_by_type(self, card_type: str) -> List[Dict[str, Any]]:
-        """Find cards by type"""
-        try:
-            result = self.client.table(self.table_name).select("*").eq("card_type", card_type).order("name").execute()
-            return result.data
-            
-        except Exception as e:
-            logger.error(f"Failed to find cards by type '{card_type}': {e}")
-            return []

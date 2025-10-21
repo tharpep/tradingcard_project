@@ -16,6 +16,7 @@ python run test
 - **`test_card_service.py`** - Tests card service business logic
 - **`test_database.py`** - Tests database CRUD operations
 - **`test_api_integration.py`** - Tests full API workflow
+- **`test_supabase_integration.py`** - **Comprehensive Supabase integration tests**
 
 ## What These Tests Verify
 
@@ -24,6 +25,7 @@ python run test
 ✅ **Card service functions** - Add, get, update, delete, search, stats
 ✅ **Database operations** - CRUD operations work correctly
 ✅ **Full API workflow** - End-to-end API functionality
+✅ **Supabase integration** - Complete Supabase backend functionality
 ✅ **Core functionality** - Business logic without external dependencies
 
 ## Test Strategy
