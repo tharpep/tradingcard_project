@@ -2,7 +2,7 @@
 Authentication routes for frontend
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, EmailStr
 from services.auth_service import auth_service
 from api.middleware.auth import get_current_user, User
@@ -117,7 +117,7 @@ async def signin(credentials: LoginRequest):
         )
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user: User = get_current_user):
+async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information"""
     return UserResponse(
         id=current_user.id,
@@ -126,7 +126,7 @@ async def get_current_user_info(current_user: User = get_current_user):
     )
 
 @router.post("/signout")
-async def signout(current_user: User = get_current_user):
+async def signout(current_user: User = Depends(get_current_user)):
     """Sign out the current user"""
     try:
         success = auth_service.sign_out()

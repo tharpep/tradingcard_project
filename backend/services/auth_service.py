@@ -34,6 +34,10 @@ class AuthService:
         """
         logger.info(f"Registering new user: {username} ({email})")
         
+        if not self.supabase:
+            logger.error("Supabase client not initialized")
+            return {"success": False, "error": "Authentication service unavailable"}
+        
         try:
             # Register with Supabase Auth
             response = self.supabase.auth.sign_up({
@@ -82,6 +86,10 @@ class AuthService:
             Dict containing user data and session info
         """
         logger.info(f"Signing in user: {email}")
+        
+        if not self.supabase:
+            logger.error("Supabase client not initialized")
+            return {"success": False, "error": "Authentication service unavailable"}
         
         try:
             response = self.supabase.auth.sign_in_with_password({
@@ -190,6 +198,29 @@ class AuthService:
             return True
         except Exception as e:
             logger.error(f"Error updating user profile: {e}")
+            return False
+    
+    def delete_user(self, user_id: str) -> bool:
+        """
+        Delete a user (admin function for testing)
+        
+        Args:
+            user_id: User's UUID to delete
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.supabase:
+            logger.error("Supabase client not initialized")
+            return False
+            
+        try:
+            # Delete from users table first
+            self.supabase.table("users").delete().eq("id", user_id).execute()
+            logger.info(f"User deleted from users table: {user_id}")
+            return True
+        except Exception as e:
+            logger.error(f"User deletion error: {e}")
             return False
 
 # Create global instance

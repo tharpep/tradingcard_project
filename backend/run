@@ -2,11 +2,8 @@
 """
 Trading Card Collection CLI
 Main entry point for the trading card management system.
-Automatically uses virtual environment if available.
 """
 
 # Import the new CLI module
 from cli import main
-
-if __name__ == '__main__':
-    main()
+main()

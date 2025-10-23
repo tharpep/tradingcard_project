@@ -57,7 +57,7 @@ def run_tests(args):
         tests_dir = os.path.join(os.path.dirname(__file__), '..', 'tests')
         
         # Build pytest command
-        cmd = ['python', '-m', 'pytest']
+        cmd = [sys.executable, '-m', 'pytest']
         
         # Handle specific test file or verbose mode
         if len(args) > 0:
