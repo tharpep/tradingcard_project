@@ -13,6 +13,7 @@ A modern web application for managing Pokemon trading card collections, built wi
 - **Modern UI** - Built with Shadcn UI components
 - **Fast Performance** - Optimized with Vite and FastAPI
 - **Cloud Database** - Supabase PostgreSQL with Row Level Security
+- **Secure API** - JWT authentication required for data access
 
 ## Architecture
 
@@ -31,6 +32,7 @@ A modern web application for managing Pokemon trading card collections, built wi
 - **Shadcn UI** - Beautiful, accessible components
 - **Tailwind CSS** - Utility-first styling
 - **User Authentication** - Supabase Auth integration (planned)
+- **Admin Dashboard** - Admin-only interface for system management (planned)
 
 ## Quick Start
 
@@ -76,11 +78,13 @@ pnpm dev           # Starts Vite dev server on http://localhost:5173
 ## Usage
 
 ### Web Interface
-1. **Add Cards** - Enter card name to add to collection
-2. **View Collection** - Browse all cards in a responsive table
-3. **Search & Filter** - Find cards by name, set, or rarity
-4. **Manage Favorites** - Star/unstar cards
-5. **View Statistics** - See collection overview
+1. **User Authentication** - Sign up/sign in to access your collection
+2. **Add Cards** - Enter card name to add to collection
+3. **View Collection** - Browse all cards in a responsive table
+4. **Search & Filter** - Find cards by name, set, or rarity
+5. **Manage Favorites** - Star/unstar cards
+6. **View Statistics** - See collection overview
+7. **Admin Dashboard** - System management interface (admin users only)
 
 ### CLI Commands (Backend)
 ```bash
@@ -262,8 +266,11 @@ docker run -p 8000:8000 trading-card-app
 - **Frontend Authentication** - User signup/signin
 - **Mobile App** - React Native version
 - **Import/Export** - CSV/JSON data exchange
-- **Admin Dashboard** - Web-based admin interface
+- **Admin Dashboard** - Web-based admin interface for system management
 - **Card Trading** - User-to-user card exchanges
+
+### Planned Admin Dashboard Features
+The admin dashboard will be a protected frontend interface that only appears for admin users. It will provide system-wide management capabilities including user management, system statistics, and data analytics - complementing the existing CLI admin tools with a web-based interface.
 
 ## Troubleshooting
 
@@ -303,22 +310,34 @@ docker run -p 8000:8000 trading-card-app
 - **Batch Operations**: Clear all data, manage collections
 
 ### Authentication Flow
-- **Frontend Users**: Will use Supabase Auth (signup/signin)
-- **Admin CLI**: Bypasses authentication (uses API keys)
-- **Data Security**: RLS policies ensure proper data isolation
+- **Frontend Users**: Use Supabase Auth (signup/signin) with JWT tokens
+- **Admin CLI**: Bypasses authentication (uses direct service calls)
+- **Data Security**: JWT authentication required for API access, RLS policies ensure proper data isolation
+- **Admin Dashboard**: Will use role-based access control for admin-only features
 
 ## API Endpoints
 
+### Authentication Endpoints
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/cards` | Get all cards |
-| GET | `/cards/search?name={query}` | Search cards |
-| GET | `/cards/favorites` | Get favorite cards |
-| GET | `/cards/stats` | Get collection statistics |
+| POST | `/auth/signup` | Register new user |
+| POST | `/auth/signin` | Sign in user |
+| GET | `/auth/me` | Get current user info |
+| POST | `/auth/signout` | Sign out user |
+
+### Card Endpoints (Requires JWT Authentication)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/cards` | Get user's cards |
+| GET | `/cards/search?name={query}` | Search user's cards |
+| GET | `/cards/favorites` | Get user's favorite cards |
+| GET | `/cards/stats` | Get user's collection statistics |
 | GET | `/cards/{id}` | Get specific card |
 | POST | `/cards` | Add new card |
 | PUT | `/cards/{id}` | Update card |
 | DELETE | `/cards/{id}` | Delete card |
+
+**Note**: All card endpoints require JWT authentication. Without authentication, endpoints return empty data for security.
 
 ## Contributing
 
