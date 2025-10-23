@@ -47,6 +47,10 @@ def test_user_registration():
     """Test user registration (will fail if user already exists)"""
     print("\nTesting user registration...")
     
+    if not AUTH_SERVICE_AVAILABLE or auth_service is None:
+        print("❌ AuthService not available - skipping registration test")
+        return False
+    
     test_email = "test@example.com"
     test_password = "testpassword123"
     test_username = "testuser"
@@ -70,6 +74,10 @@ def test_user_registration():
 def test_user_sign_in():
     """Test user sign in"""
     print("\nTesting user sign in...")
+    
+    if not AUTH_SERVICE_AVAILABLE or auth_service is None:
+        print("❌ AuthService not available - skipping sign in test")
+        return None
     
     test_email = "test@example.com"
     test_password = "testpassword123"
@@ -95,7 +103,7 @@ def test_token_validation():
     """Test token validation"""
     print("\nTesting token validation...")
     
-    if not AUTH_SERVICE_AVAILABLE:
+    if not AUTH_SERVICE_AVAILABLE or auth_service is None:
         print("❌ AuthService not available - cannot test token validation")
         return
     
@@ -151,7 +159,7 @@ def main():
         return
     
     # Test 4: Token validation
-    test_token_validation(token)
+    test_token_validation()
     
     print("\n🎉 AuthService tests completed!")
 
