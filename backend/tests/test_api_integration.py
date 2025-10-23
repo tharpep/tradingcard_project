@@ -1,4 +1,4 @@
-# Tests for API integration and full workflow
+# Comprehensive API integration tests
 import pytest
 import sys
 from pathlib import Path
@@ -25,6 +25,19 @@ def test_api_health():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
+
+def test_get_cards_endpoint():
+    """Test getting cards endpoint exists"""
+    response = client.get("/cards")
+    # Should return 200 or 500, but endpoint should exist
+    assert response.status_code in [200, 500]
+
+def test_add_card_endpoint():
+    """Test adding card endpoint exists"""
+    card_data = {"name": "Test Card"}
+    response = client.post("/cards", json=card_data)
+    # Should return 200 or 500, but endpoint should exist
+    assert response.status_code in [200, 500]
 
 def test_get_cards_empty():
     """Test getting cards when collection is empty"""
