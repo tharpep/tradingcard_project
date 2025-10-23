@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import List, Optional
 from services.card_service import CardService
 from models.card import CardCreate, CardUpdate
@@ -9,16 +9,20 @@ from api.models.responses import (
     MessageResponse,
     ErrorResponse
 )
+from api.middleware.auth import get_optional_user, User
 
 router = APIRouter(prefix="/cards", tags=["cards"])
 
-# Initialize card service
-card_service = CardService()
-
 @router.get("/", response_model=CardListResponse)
-async def get_cards():
-    """Get all cards in the collection"""
+async def get_cards(current_user: Optional[User] = Depends(get_optional_user)):
+    """Get cards - user-specific if authenticated, no data if not"""
     try:
+        # Require authentication for data access
+        if not current_user:
+            return CardListResponse(cards=[], total=0)
+        
+        # User-specific data only
+        card_service = CardService(user_id=current_user.id)
         cards = card_service.get_all_cards()
         card_responses = [CardResponse(
             id=card['id'],
@@ -35,9 +39,18 @@ async def get_cards():
         raise HTTPException(status_code=500, detail=f"Error retrieving cards: {str(e)}")
 
 @router.get("/search", response_model=CardListResponse)
-async def search_cards(name: str = Query(..., description="Name to search for")):
-    """Search cards by name"""
+async def search_cards(
+    name: str = Query(..., description="Name to search for"),
+    current_user: Optional[User] = Depends(get_optional_user)
+):
+    """Search cards by name - user-specific if authenticated, no data if not"""
     try:
+        # Require authentication for data access
+        if not current_user:
+            return CardListResponse(cards=[], total=0)
+        
+        # User-specific data only
+        card_service = CardService(user_id=current_user.id)
         cards = card_service.search_cards(name)
         card_responses = [CardResponse(
             id=card['id'],
@@ -54,9 +67,15 @@ async def search_cards(name: str = Query(..., description="Name to search for"))
         raise HTTPException(status_code=500, detail=f"Error searching cards: {str(e)}")
 
 @router.get("/favorites", response_model=CardListResponse)
-async def get_favorites():
-    """Get all favorite cards"""
+async def get_favorites(current_user: Optional[User] = Depends(get_optional_user)):
+    """Get favorite cards - user-specific if authenticated, no data if not"""
     try:
+        # Require authentication for data access
+        if not current_user:
+            return CardListResponse(cards=[], total=0)
+        
+        # User-specific data only
+        card_service = CardService(user_id=current_user.id)
         cards = card_service.get_favorites()
         card_responses = [CardResponse(
             id=card['id'],
@@ -73,18 +92,35 @@ async def get_favorites():
         raise HTTPException(status_code=500, detail=f"Error retrieving favorites: {str(e)}")
 
 @router.get("/stats", response_model=StatsResponse)
-async def get_stats():
-    """Get collection statistics"""
+async def get_stats(current_user: Optional[User] = Depends(get_optional_user)):
+    """Get collection statistics - user-specific if authenticated, no data if not"""
     try:
+        # Require authentication for data access
+        if not current_user:
+            return StatsResponse(
+                total_cards=0,
+                total_quantity=0,
+                favorite_count=0,
+                most_common_set="None"
+            )
+        
+        # User-specific data only
+        card_service = CardService(user_id=current_user.id)
         stats = card_service.get_collection_stats()
         return StatsResponse(**stats)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving stats: {str(e)}")
 
 @router.get("/{card_id}", response_model=CardResponse)
-async def get_card(card_id: int):
-    """Get a specific card by ID"""
+async def get_card(card_id: int, current_user: Optional[User] = Depends(get_optional_user)):
+    """Get a specific card by ID - user-specific if authenticated, no data if not"""
     try:
+        # Require authentication for data access
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # User-specific data only
+        card_service = CardService(user_id=current_user.id)
         card = card_service.get_card(card_id)
         if not card:
             raise HTTPException(status_code=404, detail="Card not found")
@@ -104,9 +140,15 @@ async def get_card(card_id: int):
         raise HTTPException(status_code=500, detail=f"Error retrieving card: {str(e)}")
 
 @router.post("/", response_model=CardResponse)
-async def create_card(card_data: CardCreate):
-    """Add a new card to the collection"""
+async def create_card(card_data: CardCreate, current_user: Optional[User] = Depends(get_optional_user)):
+    """Add a new card to the collection - user-specific if authenticated, no data if not"""
     try:
+        # Require authentication for data access
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # User-specific data only
+        card_service = CardService(user_id=current_user.id)
         card_id = card_service.add_card(
             name=card_data.name,
             set_name=card_data.set_name,
@@ -137,9 +179,16 @@ async def create_card(card_data: CardCreate):
         raise HTTPException(status_code=500, detail=f"Error creating card: {str(e)}")
 
 @router.put("/{card_id}", response_model=CardResponse)
-async def update_card(card_id: int, card_data: CardUpdate):
-    """Update an existing card"""
+async def update_card(card_id: int, card_data: CardUpdate, current_user: Optional[User] = Depends(get_optional_user)):
+    """Update an existing card - user-specific if authenticated, no data if not"""
     try:
+        # Require authentication for data access
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # User-specific data only
+        card_service = CardService(user_id=current_user.id)
+        
         # Check if card exists
         existing_card = card_service.get_card(card_id)
         if not existing_card:
@@ -189,9 +238,16 @@ async def update_card(card_id: int, card_data: CardUpdate):
         raise HTTPException(status_code=500, detail=f"Error updating card: {str(e)}")
 
 @router.delete("/{card_id}", response_model=MessageResponse)
-async def delete_card(card_id: int):
-    """Delete a card from the collection"""
+async def delete_card(card_id: int, current_user: Optional[User] = Depends(get_optional_user)):
+    """Delete a card from the collection - user-specific if authenticated, no data if not"""
     try:
+        # Require authentication for data access
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # User-specific data only
+        card_service = CardService(user_id=current_user.id)
+        
         # Check if card exists
         card = card_service.get_card(card_id)
         if not card:

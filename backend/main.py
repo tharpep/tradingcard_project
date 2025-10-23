@@ -27,13 +27,11 @@ app.add_middleware(
 
 # Include API routes
 from api.routes.auth import router as auth_router
-from api.routes.user_cards import router as user_cards_router
-from api.routes.admin import router as admin_router
+from api.routes.cards import router as cards_router
 
 # Include route groups
 app.include_router(auth_router)        # /auth/* - Frontend authentication
-app.include_router(user_cards_router)  # /cards/* - Frontend user cards
-app.include_router(admin_router)       # /admin/* - CLI admin access
+app.include_router(cards_router)      # /cards/* - Card operations (existing)
 
 @app.get("/")
 def read_root():
