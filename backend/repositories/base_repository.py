@@ -35,6 +35,10 @@ class BaseRepository(ABC):
         """Delete a record by ID"""
         pass
     
+    def delete_all(self) -> int:
+        """Delete all records from the table"""
+        pass
+    
     def exists(self, record_id: Union[int, str]) -> bool:
         """Check if a record exists by ID"""
         return self.find_by_id(record_id) is not None

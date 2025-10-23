@@ -130,6 +130,37 @@ class SupabaseCardRepository(BaseRepository):
             logger.error(f"Failed to delete card {record_id}: {e}")
             return False
     
+    def delete_all(self) -> int:
+        """Delete all cards from the database"""
+        logger.info("Deleting all cards from database")
+        
+        try:
+            # Get all cards first to count them
+            response = requests.get(self.api_url, headers=self.headers)
+            response.raise_for_status()
+            
+            cards = response.json()
+            total_cards = len(cards)
+            
+            if total_cards == 0:
+                logger.info("No cards to delete")
+                return 0
+            
+            # Delete all cards using Supabase's batch delete with a filter
+            # Use a filter that matches all records (id is not null)
+            delete_response = requests.delete(
+                f"{self.api_url}?id=not.is.null",
+                headers=self.headers
+            )
+            delete_response.raise_for_status()
+            
+            logger.info(f"Successfully deleted {total_cards} cards")
+            return total_cards
+            
+        except Exception as e:
+            logger.error(f"Failed to delete all cards: {e}")
+            return 0
+    
     def find_by_name(self, name: str) -> List[Dict[str, Any]]:
         """Search cards by name"""
         try:

@@ -21,12 +21,12 @@ export class CardService {
   }
 
   // Update card
-  async updateCard(id: number, updates: CardUpdate): Promise<Card> {
+  async updateCard(id: string, updates: CardUpdate): Promise<Card> {
     return api.updateCard(id, updates);
   }
 
   // Delete card
-  async deleteCard(id: number): Promise<void> {
+  async deleteCard(id: string): Promise<void> {
     return api.deleteCard(id);
   }
 
@@ -42,7 +42,7 @@ export class CardService {
   }
 
   // Toggle favorite status
-  async toggleFavorite(id: number, currentStatus: boolean): Promise<Card> {
+  async toggleFavorite(id: string, currentStatus: boolean): Promise<Card> {
     return api.updateCard(id, { is_favorite: !currentStatus });
   }
 

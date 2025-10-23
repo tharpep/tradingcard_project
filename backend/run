@@ -493,13 +493,8 @@ def clear_all_cards(args):
         
         print(f"Deleting {total_cards} cards...")
         
-        # Get all cards and delete them
-        all_cards = card_service.get_all_cards()
-        deleted_count = 0
-        
-        for card in all_cards:
-            if card_service.delete_card(card['id']):
-                deleted_count += 1
+        # Use batch delete for efficiency
+        deleted_count = card_service.delete_all_cards()
         
         print(f"Successfully deleted {deleted_count} cards.")
         

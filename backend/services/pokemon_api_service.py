@@ -42,7 +42,7 @@ class PokemonAPIService:
             response = requests.get(
                 url, 
                 params=params, 
-                timeout=self.timeout
+                timeout=10  # Reduced timeout for faster failure
             )
             response.raise_for_status()
             
@@ -190,11 +190,11 @@ class PokemonAPIService:
         try:
             logger.info("Performing Pokemon TCG API health check...")
             
-            # Try a simple request with shorter timeout for health check
+            # Use the same endpoint as card validation for consistency
             response = requests.get(
-                f"{self.base_url}/sets", 
-                params={'pageSize': 1}, 
-                timeout=10  # Reasonable timeout for health check
+                f"{self.base_url}/cards", 
+                params={'q': 'name:"Pikachu"', 'pageSize': 1}, 
+                timeout=5  # Shorter timeout for health check
             )
             response.raise_for_status()
             

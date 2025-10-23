@@ -3,7 +3,7 @@ const API_BASE_URL = 'http://localhost:8000';
 
 // Types for our card data
 export interface Card {
-  id: number;
+  id: string; // Changed from number to string for UUID support
   name: string;
   set_name: string;
   card_number?: string;
@@ -42,7 +42,7 @@ export const api = {
   },
 
   // Get a specific card
-  async getCard(id: number): Promise<Card> {
+  async getCard(id: string): Promise<Card> {
     const response = await fetch(`${API_BASE_URL}/cards/${id}`);
     if (!response.ok) throw new Error('Failed to fetch card');
     return response.json();
@@ -60,7 +60,7 @@ export const api = {
   },
 
   // Update a card
-  async updateCard(id: number, updates: CardUpdate): Promise<Card> {
+  async updateCard(id: string, updates: CardUpdate): Promise<Card> {
     const response = await fetch(`${API_BASE_URL}/cards/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -71,7 +71,7 @@ export const api = {
   },
 
   // Delete a card
-  async deleteCard(id: number): Promise<void> {
+  async deleteCard(id: string): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/cards/${id}`, {
       method: 'DELETE'
     });

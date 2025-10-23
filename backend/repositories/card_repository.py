@@ -121,6 +121,29 @@ class CardRepository(BaseRepository):
         
         return cursor.rowcount > 0
     
+    def delete_all(self) -> int:
+        """Delete all cards from the database"""
+        conn = db_connection.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Get count before deletion
+            cursor.execute(f"SELECT COUNT(*) as count FROM {self.table_name}")
+            total_cards = cursor.fetchone()['count']
+            
+            if total_cards == 0:
+                return 0
+            
+            # Delete all cards
+            cursor.execute(f"DELETE FROM {self.table_name}")
+            conn.commit()
+            
+            return total_cards
+            
+        except Exception as e:
+            conn.rollback()
+            raise e
+    
     def get_stats(self) -> Dict[str, Any]:
         """Get collection statistics"""
         conn = db_connection.get_connection()
