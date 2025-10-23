@@ -10,11 +10,15 @@ class AuthService:
     
     def __init__(self):
         """Initialize Supabase client"""
-        self.supabase: Client = create_client(
-            Config.SUPABASE_URL,
-            Config.SUPABASE_KEY
-        )
-        logger.info("AuthService initialized with Supabase client")
+        try:
+            self.supabase: Client = create_client(
+                Config.SUPABASE_URL,
+                Config.SUPABASE_KEY
+            )
+            logger.info("AuthService initialized with Supabase client")
+        except Exception as e:
+            logger.error(f"Failed to initialize Supabase client: {e}")
+            self.supabase = None
     
     def sign_up(self, email: str, password: str, username: str) -> Dict[str, Any]:
         """

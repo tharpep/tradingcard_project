@@ -11,9 +11,17 @@ logger = logging.getLogger(__name__)
 class CardService(BaseService):
     """Service for card business logic"""
     
-    def __init__(self):
+    def __init__(self, user_id: Optional[str] = None, admin: bool = False):
         super().__init__()
         self.repository = get_card_repository()
+        self.user_id = user_id
+        self.admin = admin
+        if admin:
+            self.logger.info("CardService initialized in ADMIN mode - full system access")
+        elif user_id:
+            self.logger.info(f"CardService initialized for user: {user_id}")
+        else:
+            self.logger.info("CardService initialized without user context (anonymous)")
     
     def get_pokemon_card_data(self, name: str) -> Optional[Dict[str, Any]]:
         """
@@ -56,7 +64,8 @@ class CardService(BaseService):
             'rarity': kwargs.get('rarity'),
             'quantity': kwargs.get('quantity', 1),
             'is_favorite': kwargs.get('is_favorite', False),
-            'date_added': datetime.now().isoformat()
+            'date_added': datetime.now().isoformat(),
+            'user_id': self.user_id if not self.admin else kwargs.get('user_id')  # Admin can specify user_id
         }
         
         # Validate using Pydantic model

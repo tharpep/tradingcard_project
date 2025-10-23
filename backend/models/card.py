@@ -12,6 +12,7 @@ class CardCreate(BaseModel):
     quantity: int = Field(default=1, ge=1, description="Quantity owned")
     is_favorite: bool = Field(default=False, description="Is this a favorite card")
     date_added: str = Field(default_factory=lambda: datetime.now().isoformat(), description="Date added")
+    user_id: Optional[str] = Field(None, description="User ID (UUID for Supabase)")
 
 class CardUpdate(BaseModel):
     """Model for updating an existing card"""
@@ -32,6 +33,7 @@ class Card(BaseModelWithTimestamps):
     quantity: int = Field(default=1, ge=1)
     is_favorite: bool = Field(default=False)
     date_added: str = Field(default_factory=lambda: datetime.now().isoformat())
+    user_id: Optional[str] = Field(None, description="User ID (UUID for Supabase)")
     
     def to_db_dict(self) -> dict:
         """Convert to dictionary for database insertion"""
