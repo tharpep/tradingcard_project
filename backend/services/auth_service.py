@@ -126,23 +126,48 @@ class AuthService:
         Returns:
             User data if token is valid, None otherwise
         """
+        if not self.supabase:
+            logger.error("Supabase client not initialized")
+            return None
+            
         try:
-            # Set the session with the provided token
-            self.supabase.auth.set_session(access_token, "")
+            # Use the admin API to verify the token
+            # This is more reliable than the client auth methods
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "apikey": self.supabase.supabase_key
+            }
             
-            # Get user from token
-            response = self.supabase.auth.get_user()
+            # Make a direct request to Supabase auth endpoint
+            import requests
+            response = requests.get(
+                f"{self.supabase.supabase_url}/auth/v1/user",
+                headers=headers
+            )
             
-            if response.user:
-                # Get user profile
-                profile_response = self.supabase.table("users").select("*").eq("id", response.user.id).execute()
+            logger.info(f"Token validation response status: {response.status_code}")
+            
+            if response.status_code == 200:
+                user_data = response.json()
+                logger.info(f"User data: {user_data}")
                 
-                return {
-                    "user": response.user,
-                    "profile": profile_response.data[0] if profile_response.data else None
-                }
+                if user_data and 'id' in user_data:
+                    # Get user profile
+                    profile_response = self.supabase.table("users").select("*").eq("id", user_data['id']).execute()
+                    
+                    # Create a mock user object to match the expected format
+                    class MockUser:
+                        def __init__(self, user_data):
+                            self.id = user_data['id']
+                            self.email = user_data.get('email', '')
+                            self.created_at = user_data.get('created_at', '')
+                    
+                    return {
+                        "user": MockUser(user_data),
+                        "profile": profile_response.data[0] if profile_response.data else None
+                    }
             else:
-                logger.warning("Invalid token: No user found")
+                logger.warning(f"Invalid token: HTTP {response.status_code}")
                 return None
                 
         except Exception as e:

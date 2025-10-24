@@ -34,7 +34,7 @@ def start_api_server():
         import uvicorn
         
         # Start the server with import string for reload to work
-        uvicorn.run("main:app", host=Config.API_HOST, port=Config.API_PORT, reload=Config.API_RELOAD)
+        uvicorn.run("main:app", host=Config.API_HOST, port=Config.API_PORT, reload=False)
         
     except KeyboardInterrupt:
         print("\nServer stopped by user")

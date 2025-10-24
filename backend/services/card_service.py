@@ -12,12 +12,15 @@ logger = logging.getLogger(__name__)
 class CardService(BaseService):
     """Service for card business logic - now uses shared service"""
     
-    def __init__(self, user_id: Optional[str] = None, admin: bool = False):
+    def __init__(self, user_id: Optional[str] = None, admin: bool = False, user_jwt_token: Optional[str] = None):
         super().__init__()
         # Use shared service for common operations
-        self.shared_service = SharedCardService(user_id=user_id, admin=admin)
+        # CLI: admin=True, user_jwt_token=None (uses service key)
+        # API: admin=False, user_jwt_token=token (uses user JWT)
+        self.shared_service = SharedCardService(user_id=user_id, admin=admin, user_jwt_token=user_jwt_token)
         self.user_id = user_id
         self.admin = admin
+        self.user_jwt_token = user_jwt_token
         # Expose repository for backward compatibility with tests
         self.repository = self.shared_service.repository
         if admin:

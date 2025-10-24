@@ -24,17 +24,19 @@ class SharedCardService:
     for both CLI and API interfaces
     """
     
-    def __init__(self, user_id: Optional[str] = None, admin: bool = False):
+    def __init__(self, user_id: Optional[str] = None, admin: bool = False, user_jwt_token: Optional[str] = None):
         """
         Initialize shared card service
         
         Args:
             user_id: User ID for multi-user support
             admin: Whether to run in admin mode (bypasses user restrictions)
+            user_jwt_token: JWT token for user authentication (for RLS policies)
         """
-        self.repository = get_card_repository()
+        self.repository = get_card_repository(user_jwt_token=user_jwt_token)
         self.user_id = user_id
         self.admin = admin
+        self.user_jwt_token = user_jwt_token
         
         if admin:
             logger.info("SharedCardService initialized in ADMIN mode - full system access")

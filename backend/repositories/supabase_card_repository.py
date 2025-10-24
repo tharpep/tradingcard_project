@@ -9,10 +9,11 @@ logger = logging.getLogger(__name__)
 class SupabaseCardRepository(BaseRepository):
     """Repository for card database operations using Supabase REST API"""
     
-    def __init__(self):
+    def __init__(self, user_jwt_token: Optional[str] = None):
         super().__init__("cards")
         self.supabase_url = Config.SUPABASE_URL
         self.supabase_key = Config.SUPABASE_KEY
+        self.user_jwt_token = user_jwt_token
         
         if not self.supabase_url or not self.supabase_key:
             raise ValueError("SUPABASE_URL and SUPABASE_KEY environment variables must be set")
@@ -20,13 +21,22 @@ class SupabaseCardRepository(BaseRepository):
         # Supabase REST API endpoint
         self.api_url = f"{self.supabase_url}/rest/v1/{self.table_name}"
         
-        # Headers for all requests
-        self.headers = {
-            "apikey": self.supabase_key,
-            "Authorization": f"Bearer {self.supabase_key}",
-            "Content-Type": "application/json",
-            "Prefer": "return=representation"  # Return the data after insert/update
-        }
+        # Headers for all requests - use user JWT if available, otherwise service key
+        if self.user_jwt_token:
+            self.headers = {
+                "apikey": self.supabase_key,
+                "Authorization": f"Bearer {self.user_jwt_token}",
+                "Content-Type": "application/json",
+                "Prefer": "return=representation"
+            }
+        else:
+            # Fallback to service key for admin operations
+            self.headers = {
+                "apikey": self.supabase_key,
+                "Authorization": f"Bearer {self.supabase_key}",
+                "Content-Type": "application/json",
+                "Prefer": "return=representation"
+            }
         
         logger.info("Initialized Supabase REST API client")
         logger.info(f"API URL: {self.api_url}")
@@ -37,32 +47,23 @@ class SupabaseCardRepository(BaseRepository):
         logger.info(f"Creating card via REST API: {data.get('name', 'Unknown')}")
         
         try:
-            # Use RPC function for duplicate handling
-            rpc_url = f"{self.supabase_url}/rest/v1/rpc/add_or_increment_card"
-            
-            payload = {
-                'p_name': data.get('name'),
-                'p_set_name': data.get('set_name', 'Unknown'),
-                'p_card_number': data.get('card_number'),
-                'p_rarity': data.get('rarity'),
-                'p_quantity': data.get('quantity', 1),
-                'p_is_favorite': data.get('is_favorite', False),
-                'p_card_grade': data.get('card_grade', 5.0),
-                'p_card_price': data.get('card_price', 0.0),
-                'p_card_type': data.get('card_type', 'Unknown'),
-                'p_notes': data.get('notes'),
-                'p_image_url': data.get('image_url'),
-                'p_last_updated_price': data.get('last_updated_price'),
-                'p_tags': data.get('tags', []),
-                'p_user_id': data.get('user_id')
-            }
-            
-            response = requests.post(rpc_url, headers=self.headers, json=payload)
+            # Use direct table insert instead of stored procedure
+            # This will respect RLS policies with user JWT context
+            response = requests.post(
+                self.api_url,
+                headers=self.headers,
+                json=data
+            )
             response.raise_for_status()
             
-            card_id = response.json()
-            logger.info(f"Card created/updated with ID: {card_id}")
-            return card_id
+            # Extract the ID from the response
+            result = response.json()
+            if result and len(result) > 0:
+                card_id = result[0]['id']
+                logger.info(f"Card created with ID: {card_id}")
+                return card_id
+            else:
+                raise Exception("No card ID returned from create operation")
             
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to create card via REST API: {e}")
